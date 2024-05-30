@@ -163,8 +163,7 @@ def build_vector_index(
     )
 
 
-def build_query_engine(llm_model, embed_model, documents) -> BaseQueryEngine:
-    index = build_vector_index(documents, embed_model=embed_model)
+def build_query_engine(llm_model, index) -> BaseQueryEngine:
     query_engine = index.as_query_engine(llm=llm_model)
     return query_engine
 
@@ -208,7 +207,7 @@ def process_response(response: ChatResponse) -> Dict[str, Any] | None:
     return cleaned_json
 
 
-def gen_code(agent, prompt, query_pipeline: QueryPipeline):
+def gen_code(agent: ReActAgent, prompt: str, query_pipeline: QueryPipeline):
     max_retries = 5
 
     retries = 0
@@ -218,10 +217,17 @@ def gen_code(agent, prompt, query_pipeline: QueryPipeline):
         try:
             result = agent.query(prompt)
             next_result = query_pipeline.run(response=result)
+        except Exception as e:
+            retries += 1
+            msg = f"Error occurred while running query: {e}\n"
+            msg += f"Attempt #{retries} (max {max_retries})"
+            print(msg)
+            continue
+        try:
             cleaned_json = process_response(next_result)
         except Exception as e:
             retries += 1
-            msg = f"Error occurred: {e}\n"
+            msg = f"Error occurred while processing query response: {e}\n"
             msg += f"Attempt #{retries} (max {max_retries})"
             print(msg)
 
@@ -242,7 +248,7 @@ def save_code(path, cleaned_json: Dict[str, Any]) -> None:
         print(f"Error saving file: {e}")
 
 
-def run_prompt_loop(query_pipeline: QueryPipeline, agent) -> None:
+def run_prompt_loop(query_pipeline: QueryPipeline, agent: ReActAgent) -> None:
     while (prompt := input("Enter a prompt (q to quit): ")) != "q":
         cleaned_json = gen_code(agent, prompt, query_pipeline)
         if cleaned_json:
@@ -254,7 +260,7 @@ def run_prompt_loop(query_pipeline: QueryPipeline, agent) -> None:
 
             save_code(filename, cleaned_json)
         else:
-            print("Failed to generate code after 3 retries.")
+            print("Failed to generate code.")
 
 
 def main() -> None:
