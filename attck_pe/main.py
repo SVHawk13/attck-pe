@@ -253,12 +253,16 @@ def main() -> None:
     documents = read_documents(document_path, file_extractor)
 
     # Load AI models
-    llm_model = load_llm_model("dolphin-mistral:latest")
-    embed_model = load_embed_model("local:BAAI/bge-m3")
-    agent_llm_model = load_llm_model("dolphin-phi:latest")
-    agent_llm_model = load_llm_model("red-team-expert:latest")
+    llm_model_name = os.environ.get("llm_model", "dolphin-mistral:latest")
+    embed_model_name = os.environ.get("embed_model", "BAAI/bge-m3")
+    agent_llm_model_name = os.environ.get("code_agent_model", "red-team-expert:latest")
+    llm_model = load_llm_model(llm_model_name)
+    embed_model = load_embed_model(embed_model_name)
+    agent_llm_model = load_llm_model(agent_llm_model_name)
 
-    query_engine = build_query_engine(llm_model, embed_model, documents)
+    # Build code agent
+    index = build_vector_index(documents, embed_model)
+    query_engine = build_query_engine(llm_model, index)
     code_generator = build_code_generator(query_engine)
     agent = build_code_agent(agent_llm_model, code_reader, code_generator)
 
