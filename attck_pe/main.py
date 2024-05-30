@@ -98,7 +98,7 @@ class CodeAgentBuilder:
             self._llm = load_llm_model(llm)
         else:
             msg = f"Failed to set llm: Invalid type: {type(llm).__name__}"
-            raise TypeError
+            raise TypeError(msg)
 
     @property
     def llm_model_name(self) -> str:
