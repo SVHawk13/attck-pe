@@ -1,5 +1,5 @@
 import os
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Sequence
 
 from llama_index.core import (
     PromptTemplate,
@@ -14,8 +14,9 @@ from llama_index.core.base.llms.types import ChatResponse
 from llama_index.core.embeddings import resolve_embed_model
 from llama_index.core.output_parsers import PydanticOutputParser
 from llama_index.core.query_pipeline import QueryPipeline
+from llama_index.core.readers.base import BaseReader
 from llama_index.core.schema import Document
-from llama_index.core.tools import QueryEngineTool, ToolMetadata
+from llama_index.core.tools import FunctionTool, QueryEngineTool, ToolMetadata
 from llama_index.llms.ollama import Ollama
 from llama_parse import LlamaParse
 from pydantic import BaseModel
@@ -24,7 +25,9 @@ from attck_pe.code_reader import code_reader
 from attck_pe.prompts import get_code_parser_template, get_context
 
 
-def read_documents(input_dir, file_extractor) -> List[Document]:
+def read_documents(
+    input_dir: str, file_extractor: Dict[str, BaseReader]
+) -> List[Document]:
     document_reader = SimpleDirectoryReader(input_dir, file_extractor=file_extractor)
     return document_reader.load_data()
 
@@ -56,7 +59,7 @@ class CodeAgentBuilder:
     def __init__(
         self,
         llm=None,
-        code_reader=None,
+        code_reader: FunctionTool | None = None,
         code_generator=None,
         context: str | None = None,
     ) -> None:
@@ -66,11 +69,11 @@ class CodeAgentBuilder:
         self.context = context
 
     @property
-    def code_reader(self):
+    def code_reader(self) -> FunctionTool:
         return self._code_reader
 
     @code_reader.setter
-    def code_reader(self, code_reader) -> None:
+    def code_reader(self, code_reader: FunctionTool) -> None:
         self._code_reader = code_reader
 
     @property
@@ -146,7 +149,7 @@ def get_storage_context(vector_store) -> StorageContext:
 
 
 def build_vector_index(
-    documents,
+    documents: Sequence[Document],
     embed_model: BaseEmbedding | str | None = None,
     storage_context: StorageContext | None = None,
 ) -> VectorStoreIndex:
