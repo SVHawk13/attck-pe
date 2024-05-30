@@ -1,4 +1,3 @@
-import ast
 import os
 from typing import Any, Dict, List
 
@@ -6,6 +5,7 @@ from llama_index.core import PromptTemplate, SimpleDirectoryReader, VectorStoreI
 from llama_index.core.agent import ReActAgent
 from llama_index.core.base.base_query_engine import BaseQueryEngine
 from llama_index.core.base.embeddings.base import BaseEmbedding
+from llama_index.core.base.llms.types import ChatResponse
 from llama_index.core.embeddings import resolve_embed_model
 from llama_index.core.output_parsers import PydanticOutputParser
 from llama_index.core.query_pipeline import QueryPipeline
@@ -41,7 +41,6 @@ def check_model_name(name: str) -> None:
 
 
 def load_llm_model(model: str, timeout: float = 360.0) -> Ollama:
-
     check_model_name(model)
     return Ollama(model=model, request_timeout=timeout)
 
@@ -185,21 +184,18 @@ def build_query_pipeline(llm) -> QueryPipeline:
     return query_pipeline
 
 
-def process_response(response) -> Dict[str, Any] | None:
+def process_response(response: ChatResponse) -> Dict[str, Any] | None:
     try:
-        cleaned_json: dict[str, Any] = ast.literal_eval(
-            str(response).replace("assistant:", "")
-        )
-        if not all(key in cleaned_json for key in {"code", "description", "filename"}):
-            raise KeyError("One or more expected keys are missing in the response")
-        return cleaned_json
-    except Exception as e:
+        assert isinstance(response, ChatResponse)
+        validated_response = CodeOutput.model_validate_json(response.message.content)
+        cleaned_json = validated_response.model_dump(warnings="error")
+    except ValueError as e:
         print(f"Error processing response: {e}")
         return None
+    return cleaned_json
 
 
 def gen_code(agent, prompt, query_pipeline: QueryPipeline):
-
     max_retries = 5
 
     retries = 0
