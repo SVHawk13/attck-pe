@@ -1,7 +1,12 @@
 import os
 from typing import Any, Dict, List
 
-from llama_index.core import PromptTemplate, SimpleDirectoryReader, VectorStoreIndex
+from llama_index.core import (
+    PromptTemplate,
+    SimpleDirectoryReader,
+    StorageContext,
+    VectorStoreIndex,
+)
 from llama_index.core.agent import ReActAgent
 from llama_index.core.base.base_query_engine import BaseQueryEngine
 from llama_index.core.base.embeddings.base import BaseEmbedding
@@ -136,8 +141,14 @@ def load_embed_model(model: str = "local:BAAI/bge-m3") -> BaseEmbedding:
     return embed_model
 
 
+def get_storage_context(vector_store) -> StorageContext:
+    return StorageContext.from_defaults(vector_store=vector_store)
+
+
 def build_vector_index(
-    documents, embed_model: BaseEmbedding | str | None = None
+    documents,
+    embed_model: BaseEmbedding | str | None = None,
+    storage_context: StorageContext | None = None,
 ) -> VectorStoreIndex:
     if not embed_model:
         embed_model = load_embed_model()
@@ -147,7 +158,9 @@ def build_vector_index(
         msg = "Embed model could not be loaded: \n"
         msg += f"embed_model is invalid type: {type(embed_model).__name__}"
         raise TypeError(msg)
-    return VectorStoreIndex.from_documents(documents, embed_model=embed_model)
+    return VectorStoreIndex.from_documents(
+        documents, storage_context, embed_model=embed_model
+    )
 
 
 def build_query_engine(llm_model, embed_model, documents) -> BaseQueryEngine:
