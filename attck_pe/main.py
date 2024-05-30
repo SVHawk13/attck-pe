@@ -60,7 +60,7 @@ class CodeAgentBuilder:
         self,
         llm=None,
         code_reader: FunctionTool | None = None,
-        code_generator=None,
+        code_generator: QueryEngineTool | None = None,
         context: str | None = None,
     ) -> None:
         self.llm = llm
@@ -77,11 +77,11 @@ class CodeAgentBuilder:
         self._code_reader = code_reader
 
     @property
-    def code_generator(self):
+    def code_generator(self) -> QueryEngineTool:
         return self._code_generator
 
     @code_generator.setter
-    def code_generator(self, code_generator) -> None:
+    def code_generator(self, code_generator: QueryEngineTool) -> None:
         self._code_generator = code_generator
 
     @property
